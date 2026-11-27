@@ -33,6 +33,13 @@ parameters and PIC algorithms, and subsonic vs supersonic electron drift.
   Velocities are not offset by half a step at initialisation (O-1), so part of the energy drift
   comes from mismatched time levels, not from the scheme itself.
 
+## Keep the code simple (I'm a beginner in Python)
+- Plain functions, NumPy arrays and explicit loops (which numba speeds up). No classes, decorators beyond `@njit`,
+  or clever abstractions unless I ask.
+- Short files with one clear purpose each. Name variables as in `docs/notation.md`.
+- Comment the physics/numerics step by step, and explain any new Python concept briefly when you introduce it.
+- Prefer the simplest version that passes the tests. Optimise only when a run is actually too slow.
+
 ## Physics invariants: never violate
 - **Start simple, build slowly.** Implement only the current roadmap phase. Don't add features from later phases unasked.
 - Never modify the pusher, deposition, interpolation or field solve without first stating the change mathematically

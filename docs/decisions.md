@@ -16,6 +16,8 @@ Claude: read this before changing numerics. Propose new entries rather than devi
 
 **S-005 · 2026-11-27 · Terminology:** "oscillations" or "instability-driven/anomalous transport", not "turbulence".
 
+**S-006 · 2026-11-27 · Code simplicity.** Carlos is a beginner Python user: plain functions, NumPy arrays, explicit (numba) loops, no classes or abstractions unless asked; readable over clever.
+
 ## Numerics: settled (from the P0 prototype)
 
 **D-001 · 2026-11-27 · Stack: Python 3 + NumPy/SciPy, matplotlib.**
