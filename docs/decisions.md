@@ -1,48 +1,59 @@
 # Decisions log — TFM
 
-Short record of choices that later work must respect. Newest at the bottom.
-Format: **ID · date · decision** — why · consequences. Claude: read this before changing numerics; propose new entries rather than silently deviating.
+A short record of choices that later work must respect. Newest entries at the bottom of each section.
+Format: **ID · date · decision.** Why · consequences.
+Claude: read this before changing numerics. Propose new entries rather than deviating silently.
 
-## Settled (as of 2026-11-27, from `prototypes/conservation_test.py`)
+## Scope
 
-**D-001 · 2026-11-27 · Stack: Python 3 + NumPy/SciPy, matplotlib for plots.**
-`numba` is imported but not used yet (no `@njit`); adopting it is open (O-4).
+**S-001 · 2026-11-27 · 1D azimuthal only.** The simulated coordinate is $y$, periodic (closed loop around the channel). 1D3V. No 2D extension planned.
 
-**D-002 · 2026-11-27 · SI units; temperatures stored in joules internally, reported in eV.**
-Avoids hidden normalisations. Plots and text must convert (`T/e`).
+**S-002 · 2026-11-27 · Collisionless, idealised scenario.** All electron transport is instability-driven (ECDI). No neutrals, ionisation or walls.
 
-**D-003 · 2026-11-27 · 1D electrostatic, fully periodic domain, electrons and ions both kinetic.**
-`nx` nodes, `nx-1` cells; node `nx-1` duplicates node 0. Density deposited on node `nx-1` is folded onto node 0.
+**S-003 · 2026-11-27 · Fields and coordinates follow Bello et al. (2024):** $\mathbf B_0 \parallel \mathbf 1_x$, $\mathbf E_0 \parallel \mathbf 1_z$, drift along $\mathbf 1_y$. Electrons feel $\mathbf E_0 + E_1\mathbf 1_y$; ions feel only $E_1\mathbf 1_y$.
 
-**D-004 · 2026-11-27 · Particle positions stored in cell units ξ = x/Δx; periodic wrap `pos % (nx-1)`.**
+**S-004 · 2026-11-27 · Develop incrementally** along the roadmap in `scope.md` (P1 Boris → P2 baseline + validation → P3 conservation study → P4 alternative algorithms → P5 subsonic/supersonic). Each phase gets tests before the next one starts.
 
-**D-005 · 2026-11-27 · Charge deposition: CIC (linear weighting) to nodes.**
+**S-005 · 2026-11-27 · Terminology:** "oscillations" or "instability-driven/anomalous transport", not "turbulence".
 
-**D-006 · 2026-11-27 · Poisson: 2nd-order central finite differences, direct sparse solve (`scipy.sparse.linalg.spsolve`).**
-Gauge fixed by setting φ = 0 at node `nx-1`. Verified against analytic periodic sin/cos sources (2nd-order error). Requires discrete **zero net charge**, which holds while both species have equal macroparticle number and weight — revisit if that changes (injection, ionisation, different weights).
+## Numerics: settled (from the P0 prototype)
 
-**D-007 · 2026-11-27 · Time integration: explicit leapfrog (v then x).**
+**D-001 · 2026-11-27 · Stack: Python 3 + NumPy/SciPy, matplotlib.**
 
-**D-008 · 2026-11-27 · Two field-interpolation variants are being compared:**
-- `move_particlesMC`: E at nodes (central difference), CIC interpolation (momentum-conserving).
-- `move_particlesEC`: E at cell centres, NGP-at-cell interpolation (energy-conserving).
-- `move_particlesMC2`: cell-centred E with linear interpolation (experimental).
-Current default in the loop: `move_particlesMC` with `E_nodes`.
+**D-002 · 2026-11-27 · SI units. Temperatures are stored in J internally and reported in eV.**
 
-**D-009 · 2026-11-27 · Reference test case:** xenon, $n_0=10^{17}$ m⁻³, $T_e=10$ eV, $T_i=1$ eV, $L=10$ mm, 200 cells, $\Delta t=10^{-12}$ s, 100 ppc.
-Gives Δx/λ_D ≈ 0.67, ω_pe Δt ≈ 0.018.
+**D-003 · 2026-11-27 · Periodic grid.** The P0 prototype uses `nx` nodes, with node `nx-1` duplicating node 0; density on the last node is folded onto node 0.
 
-**D-010 · 2026-11-27 · Repository lives in `C:\Users\crs24\GitHub\TFM\TFM`, not in OneDrive.**
-OneDrive syncing a `.git` folder causes corruption/conflicts. Papers and large outputs are not committed (`.gitignore`).
+**D-004 · 2026-11-27 · P0 stores positions in cell units ξ = y/Δy, with periodic wrap.**
 
-## Open questions (decide, then move up as D-entries)
+**D-005 · 2026-11-27 · Charge deposition: CIC (linear) to nodes.**
 
-**O-1 · Leapfrog initialisation.** Velocities are not pushed back Δt/2 at t=0, and kinetic energy is evaluated with $v^{n-1/2}$ against field energy at $t^n$. Decide: add the initial half-step and/or time-centre K as $\tfrac12(K^{n-1/2}+K^{n+1/2})$ before judging energy conservation.
+**D-006 · 2026-11-27 · P0 Poisson: 2nd-order FD, direct sparse solve, gauge φ = 0 at node `nx-1`.** Verified against analytic periodic sources (2nd-order error). Requires discrete **zero net charge**, which holds while both species have the same macroparticle count and weight.
 
-**O-2 · Reproducibility.** No RNG seed is set. Decide: `np.random.default_rng(seed)` with seed stored in run metadata.
+**D-007 · 2026-11-27 · P0 time integration: explicit leapfrog.** Boris replaces it in P1.
 
-**O-3 · Coordinate names.** Hall thruster convention (z axial, θ or y azimuthal, r radial) vs current generic x. Decide before the first E×B / azimuthal run.
+**D-008 · 2026-11-27 · P0 interpolation variants under comparison:** `move_particlesMC` (E at nodes, CIC: momentum-conserving), `move_particlesEC` (E at cell centres, NGP: energy-conserving), `move_particlesMC2` (experimental). These are seeds for the algorithm comparison in P4.
 
-**O-4 · Performance.** Particle loops are pure Python. Decide: numba `@njit` kernels vs NumPy vectorisation; keep a slow reference implementation for tests either way.
+**D-009 · 2026-11-27 · Repository at `C:\Users\crs24\GitHub\TFM\TFM`, not in OneDrive.** Papers and outputs are not committed.
 
-**O-5 · Next physics step.** Toward the thesis topic (e.g. adding $B_0$ and an E×B drift for azimuthal instabilities). To confirm with supervisor.
+## Assumed (not confirmed by Carlos yet; confirm or change)
+
+**A-1 · Validation target = Bello §III fully periodic case, linear phase.** Compare unstable modes, growth rates and frequencies with the dispersion relation (their Eq. 4) and with the paper's values. The §IV injection cases are out of scope unless decided otherwise.
+
+**A-2 · Performance: numba `@njit` kernels from P1 onwards, each with a slow readable reference version used in tests.** The 1D Bello case is ~40k particles × 6×10⁵ steps, and the P3 parameter sweeps multiply that, so pure Python loops are too slow.
+
+**A-3 · Code, comments and docs in English.** The language of the report and defense is still open (O-6).
+
+## Open questions
+
+**O-1 · Leapfrog/Boris initialisation:** velocities must start at $t^{-1/2}$, and kinetic energy should be time-centred before judging energy conservation. Decide this in P1.
+
+**O-2 · Reproducibility:** use `np.random.default_rng(seed)` and store the seed in run metadata.
+
+**O-3 · Poisson solver for the baseline:** keep the FD sparse solve, or switch to FFT with zero-mean potential as PICASO does. Either can be the baseline; the other becomes a P4 variant.
+
+**O-4 · Validation tolerance:** what agreement in γ and ω_r counts as "validated"?
+
+**O-5 · Supersonic case (P5):** which parameter is varied to reach $M_e>1$ ($E_0$, $B_0$ or $T_{e0}$)? Keep the other dimensionless numbers fixed?
+
+**O-6 · Report/defense language** (English or Spanish).
