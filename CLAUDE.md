@@ -1,5 +1,8 @@
-# CLAUDE.md — TFM: Kinetic modeling of plasma instabilities in a Hall thruster discharge
+# CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+**TFM: Kinetic modeling of plasma instabilities in a Hall thruster discharge.**
 MSc thesis (TFM) of Carlos Rodríguez Sánchez. A 1D-azimuthal, collisionless, electrostatic **1D3V PIC** code in
 Python to study the electron cyclotron drift instability (ECDI) and the anomalous electron transport it drives in Hall thrusters.
 The code is built incrementally, validated against Bello-Benítez et al. (2024), and then used to compare numerical
@@ -16,6 +19,19 @@ parameters and PIC algorithms, and subsonic vs supersonic electron drift.
 - `src/`: reusable, tested code (to be created in P1).
 - `tests/`: pytest (to be created in P1).
 - `docs/`: scope, notation, decisions. `references/` and `outputs/` are git-ignored.
+
+## P0 prototype structure (`prototypes/conservation_test.py`)
+- Flat script, no `main()`. Kernels are plain Python loops; `numba` is imported but not used yet.
+- Loop order per step: record diagnostics at the current state → push (v then ξ) → CIC deposit
+  → Poisson → E.
+- Grid: `nx` nodes, and node `nx-1` duplicates node 0 (D-003). `E_nodes` has length `nx` and feeds
+  `move_particlesMC`. `E_cells` has length `nx-1` and feeds `move_particlesEC`/`MC2`.
+  You pick the variant by commenting lines in and out. In P1 that choice must become a parameter.
+- Poisson: `A` is the periodic FD Laplacian. Its last row is the identity, and `rhs[nx-1]=0` sets the gauge.
+  `rhs = e(ne-ni)/ε0 · w/dx` converts macroparticle counts to physical density.
+- Diagnostics: K and P are summed without weights, so the energy check compares them with `ene_f/w`.
+  Velocities are not offset by half a step at initialisation (O-1), so part of the energy drift
+  comes from mismatched time levels, not from the scheme itself.
 
 ## Physics invariants: never violate
 - **Start simple, build slowly.** Implement only the current roadmap phase. Don't add features from later phases unasked.
@@ -40,5 +56,8 @@ parameters and PIC algorithms, and subsonic vs supersonic electron drift.
 - Platform: Windows, PowerShell. Use `python`, not `python3`.
 
 ## Commands
+- Dependencies (no requirements file yet; add one in P1): numpy, scipy, matplotlib, tqdm, numba
 - Run P0 prototype: `python prototypes/conservation_test.py`
+- Run P0 without blocking on plot windows: `$env:MPLBACKEND='Agg'; python prototypes/conservation_test.py`
 - Tests (from P1): `pytest -q`
+- Single test (from P1): `pytest tests/test_<module>.py::test_<name> -q`
